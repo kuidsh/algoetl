@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: algoetl - Algorand mainnet -> Parquet on S3 -> Athena (NOT deployed; review costs first)
+Description: algoetl - Algorand mainnet -> Parquet on S3 -> Athena (NOT deployed)
 
 Parameters:
   IndexerUrl: {Type: String, Default: "https://mainnet-idx.4160.nodely.dev"}

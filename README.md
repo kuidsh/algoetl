@@ -1,8 +1,7 @@
 # algoetl: Algorand → Parquet → Athena (open-source ETL)
 
-**Status: prototype v0.1 (2026-11-16).** 11 passing tests. Tested offline against
-**synthetic** Indexer-shaped blocks only. The build workspace can't reach Algorand APIs,
-so the first live run is step 3 below.
+**Status: v0.2.** 26 passing tests, including tests over 20 captured real mainnet blocks.
+Verified live against the Nodely public Indexer (2026-11-17).
 
 ## Why
 Algorand isn't covered by Dune's data catalog (checked 2026-11-16), and there's no maintained
@@ -28,7 +27,7 @@ overwrites the same files, so it's idempotent. A checkpoint in `<out>/_state/` m
 ## Run locally
 ```bash
 pip install pyarrow            # boto3 only if writing to s3://
-python -m pytest -q            # 11 tests, offline
+python -m pytest -q            # offline
 python -m algoetl.cli export --start 58000000 --end 58000100 --out ./data
 python -m algoetl.cli follow --out ./data --start 58000000
 # merge each day's small files into one compact-<day>.parquet per table (safe to re-run)
@@ -40,17 +39,23 @@ bot traffic from 2027-01-01, and algoetl defaults to 4 req/s with 429 backoff. F
 tip needs about 31k requests/day. A full historical backfill needs your own Indexer, a paid
 Nodely plan, or Nodely's public-goods exemption.
 
-## Deploy to AWS (not done; needs your account)
+## Example output (real mainnet, rounds 67,052,053 to 67,052,123)
+```
+$ algoetl export --start 67052053 --end 67052123 --out ./data && algoetl compact --out ./data
+$ duckdb -c "select tx_type, count(*) from './data/transactions/*/*.parquet' group by 1 order by 2 desc"
+axfer 1423 | appl 695 | pay 224 | acfg 86 | hb 39      -- 71 blocks, 2,467 txns (incl. inner)
+```
+Most-transferred assets in that window: 127746157 (397 transfers), 3145862805 (316), ALGO itself (224).
+
+## Deploy to AWS (optional, not deployed)
 ```bash
 sam build -t infra/template.yaml && sam deploy --guided   # set StartRound to a recent round
 ```
 This creates a private, encrypted S3 bucket, an arm64 Lambda that runs every 5 minutes
 (concurrency 1), a Glue database with partition projection (no crawler), and an Athena
-workgroup capped at 1 GB scanned per query. See `COSTS.md`.
+workgroup capped at 1 GB scanned per query. Review the template and your own AWS pricing before deploying.
 
 ## Roadmap
-- v0.2: daily compaction (merge the ~288 small files per table per day), `accounts_daily` balances table, asset metadata (`acfg`) table, real fixture captures.
-- v0.3: public sample dataset (last 30 days) plus a DuckDB-WASM query page, for adoption metrics.
-- v0.4: PostgreSQL sink option, plus a dbt package with standard models (DAU, asset flows, app usage).
+See [docs/ROADMAP.md](docs/ROADMAP.md).
 
-License: Apache-2.0.
+License: [Apache-2.0](LICENSE).

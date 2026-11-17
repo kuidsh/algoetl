@@ -1,11 +1,11 @@
 # algoetl — notes for Claude Code
 
-Open-source Algorand Indexer -> Parquet exporter, to be submitted as an Algorand xGov
-retroactive grant. Owner: David. License Apache-2.0.
+Open-source Algorand Indexer -> Parquet exporter (portfolio project). Owner: David.
+License Apache-2.0. Public repo: github.com/kuidsh/algoetl.
 
 ## Commands
 - Setup: `python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev,aws]"`
-- Tests: `pytest -q` (offline; fixtures in tests/fixtures/blocks.json are SYNTHETIC)
+- Tests: `pytest -q` (offline; blocks.json is SYNTHETIC, real_blocks.json is 20 captured mainnet blocks)
 - Live smoke test: `algoetl export --start <recent round> --end <+50> --out ./data`
 - Query: `duckdb -c "select tx_type, count(*) from './data/transactions/*/*.parquet' group by 1"`
 
@@ -22,6 +22,5 @@ retroactive grant. Owner: David. License Apache-2.0.
 - Every change keeps `pytest -q` green; add a test with each feature.
 - Real-data fixtures: capture small samples with tests/fixtures/capture.py, never commit >1 MB.
 
-## Roadmap (next)
-v0.2: replace synthetic fixtures with real captures; daily compaction job; `assets` (acfg)
-table; `accounts_daily`; Postgres sink. v0.3: public 30-day sample dataset + DuckDB-WASM page.
+## Roadmap
+See docs/ROADMAP.md.
