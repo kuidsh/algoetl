@@ -1,0 +1,115 @@
+{
+ "range": [
+  58000000,
+  58000059
+ ],
+ "blocks": 60,
+ "rows": {
+  "blocks": 60,
+  "transactions": 430,
+  "asset_transfers": 317,
+  "app_calls": 113
+ },
+ "files": 16,
+ "file_sample": [
+  "app_calls/date=2026-11-16/r0058000000-0058000019.parquet",
+  "app_calls/date=2026-11-16/r0058000020-0058000039.parquet",
+  "app_calls/date=2026-11-17/r0058000020-0058000039.parquet",
+  "app_calls/date=2026-11-17/r0058000040-0058000059.parquet",
+  "asset_transfers/date=2026-11-16/r0058000000-0058000019.parquet",
+  "asset_transfers/date=2026-11-16/r0058000020-0058000039.parquet"
+ ],
+ "by_type": [
+  {
+   "tx_type": "pay",
+   "txid_count": 133
+  },
+  {
+   "tx_type": "appl",
+   "txid_count": 113
+  },
+  {
+   "tx_type": "axfer",
+   "txid_count": 184
+  }
+ ],
+ "by_day": [
+  {
+   "date": "2026-11-16",
+   "txid_count": 157,
+   "sender_count_distinct": 42,
+   "fee_sum": 157000
+  },
+  {
+   "date": "2026-11-17",
+   "txid_count": 273,
+   "sender_count_distinct": 43,
+   "fee_sum": 273000
+  }
+ ],
+ "top_assets": [
+  {
+   "asset_id": 0,
+   "txid_count": 133,
+   "receiver_count_distinct": 39
+  },
+  {
+   "asset_id": 312769,
+   "txid_count": 54,
+   "receiver_count_distinct": 31
+  },
+  {
+   "asset_id": 386192725,
+   "txid_count": 54,
+   "receiver_count_distinct": 31
+  },
+  {
+   "asset_id": 31566704,
+   "txid_count": 42,
+   "receiver_count_distinct": 25
+  },
+  {
+   "asset_id": 1138500612,
+   "txid_count": 34,
+   "receiver_count_distinct": 22
+  }
+ ],
+ "apps": [
+  {
+   "app_id": 552635992,
+   "txid_count": 35
+  },
+  {
+   "app_id": 1002541853,
+   "txid_count": 36
+  },
+  {
+   "app_id": 1134695678,
+   "txid_count": 42
+  }
+ ],
+ "inner_txns": 74,
+ "inner_sample": [
+  {
+   "round": 58000000,
+   "txid": "SOMLBVZIKTW7JPPKS2AIPO23ZWNVKE4PBM4MF54VQCOTW4BFWKBQ:3/0",
+   "parent_txid": "SOMLBVZIKTW7JPPKS2AIPO23ZWNVKE4PBM4MF54VQCOTW4BFWKBQ",
+   "depth": 1,
+   "tx_type": "axfer"
+  },
+  {
+   "round": 58000003,
+   "txid": "PQ4QA2EZL262DGDNEIISYCXX2ROFKPTG2DFWLCRPBDRKC6S5IYGQ:1/0",
+   "parent_txid": "PQ4QA2EZL262DGDNEIISYCXX2ROFKPTG2DFWLCRPBDRKC6S5IYGQ",
+   "depth": 1,
+   "tx_type": "axfer"
+  },
+  {
+   "round": 58000003,
+   "txid": "P22I5RUFMREZX7IBJKXQIRBRW4EFQBJHS33PHDSGRXATCPTHOUEQ:2/0",
+   "parent_txid": "P22I5RUFMREZX7IBJKXQIRBRW4EFQBJHS33PHDSGRXATCPTHOUEQ",
+   "depth": 1,
+   "tx_type": "axfer"
+  }
+ ]
+}

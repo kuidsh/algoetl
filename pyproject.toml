@@ -1,0 +1,26 @@
+[project]
+name = "algoetl"
+version = "0.1.0"
+description = "Algorand Indexer -> date-partitioned Parquet for Athena/DuckDB"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+dependencies = ["pyarrow>=14"]
+
+[project.optional-dependencies]
+aws = ["boto3>=1.28"]
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=8", "duckdb>=1.0"]
+
+[project.scripts]
+algoetl = "algoetl.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["algoetl"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: algoetl - Algorand mainnet -> Parquet on S3 -> Athena (NOT deployed; review costs first)
+
+Parameters:
+  IndexerUrl: {Type: String, Default: "https://mainnet-idx.4160.nodely.dev"}
+  StartRound: {Type: String, Default: ""}
+  Schedule:   {Type: String, Default: "rate(5 minutes)"}
+
+Resources:
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration: [{ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}}]
+      PublicAccessBlockConfiguration: {BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true}
+      LifecycleConfiguration:
+        Rules:
+          - {Id: athena-results, Status: Enabled, Prefix: athena-results/, ExpirationInDays: 7}
+
+  FollowFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Architectures: [arm64]
+      Handler: algoetl.lambda_handler.handler
+      CodeUri: ../
+      MemorySize: 512
+      Timeout: 300
+      ReservedConcurrentExecutions: 1   # never two ticks writing at once
+      Environment:
+        Variables:
+          ALGOETL_OUT: !Sub "s3://${DataBucket}/algorand/mainnet"
+          ALGOETL_INDEXER: !Ref IndexerUrl
+          ALGOETL_START_ROUND: !Ref StartRound
+          ALGOETL_MAX_BLOCKS: "600"
+      Policies:
+        - S3CrudPolicy: {BucketName: !Ref DataBucket}
+      Events:
+        Tick:
+          Type: ScheduleV2
+          Properties: {ScheduleExpression: !Ref Schedule}
+
+  FollowFnLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${FollowFn}"
+      RetentionInDays: 14
+
+  GlueDb:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput: {Name: algorand_mainnet}
+
+  # Partition projection: no crawler, no MSCK REPAIR; Athena derives date partitions.
+  TxTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Ref GlueDb
+      TableInput:
+        Name: transactions
+        TableType: EXTERNAL_TABLE
+        PartitionKeys: [{Name: date, Type: string}]
+        Parameters:
+          projection.enabled: "true"
+          projection.date.type: date
+          projection.date.format: yyyy-MM-dd
+          projection.date.range: "2019-06-11,NOW"
+          storage.location.template: !Sub "s3://${DataBucket}/algorand/mainnet/transactions/date=${!date}"
+        StorageDescriptor:
+          Location: !Sub "s3://${DataBucket}/algorand/mainnet/transactions/"
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo: {SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe}
+          Columns:
+            - {Name: round, Type: bigint}
+            - {Name: ts, Type: bigint}
+            - {Name: txid, Type: string}
+            - {Name: parent_txid, Type: string}
+            - {Name: depth, Type: smallint}
+            - {Name: intra, Type: string}
+            - {Name: tx_type, Type: string}
+            - {Name: sender, Type: string}
+            - {Name: fee, Type: bigint}
+            - {Name: group, Type: string}
+            - {Name: note_text, Type: string}
+
+  TransfersTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Ref GlueDb
+      TableInput:
+        Name: asset_transfers
+        TableType: EXTERNAL_TABLE
+        PartitionKeys: [{Name: date, Type: string}]
+        Parameters:
+          projection.enabled: "true"
+          projection.date.type: date
+          projection.date.format: yyyy-MM-dd
+          projection.date.range: "2019-06-11,NOW"
+          storage.location.template: !Sub "s3://${DataBucket}/algorand/mainnet/asset_transfers/date=${!date}"
+        StorageDescriptor:
+          Location: !Sub "s3://${DataBucket}/algorand/mainnet/asset_transfers/"
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo: {SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe}
+          Columns:
+            - {Name: round, Type: bigint}
+            - {Name: ts, Type: bigint}
+            - {Name: txid, Type: string}
+            - {Name: asset_id, Type: bigint}
+            - {Name: sender, Type: string}
+            - {Name: receiver, Type: string}
+            - {Name: amount, Type: "decimal(20,0)"}
+            - {Name: close_to, Type: string}
+  # blocks and app_calls tables follow the same pattern (see sql/ddl.sql for Athena DDL).
+
+  Workgroup:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      Name: algoetl
+      WorkGroupConfiguration:
+        BytesScannedCutoffPerQuery: 1073741824   # 1 GB cap per query = max $0.005
+        EnforceWorkGroupConfiguration: true
+        ResultConfiguration: {OutputLocation: !Sub "s3://${DataBucket}/athena-results/"}
+
+Outputs:
+  Bucket: {Value: !Ref DataBucket}
+  Function: {Value: !Ref FollowFn}
